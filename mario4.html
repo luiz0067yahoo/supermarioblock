@@ -1,0 +1,275 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Jogo Similar ao Mario</title>
+  <style>
+    body {
+      margin: 0;
+      padding: 0;
+    }
+
+    #game {
+      width: 800px;
+      height: 400px;
+      background-color: #b0e0e6;
+      position: relative;
+      overflow: hidden;
+    }
+
+    #player {
+      width: 20px;
+      height: 40px;
+      background-color: red;
+      position: absolute;
+      bottom: 0;
+      left: 0;
+	  z-index:1000;
+      transition: transform 0.2s ease-in-out;
+    }
+
+    .coin{
+      width: 20px;
+      height: 20px;
+      background-color: gold;
+      position: absolute;
+      bottom: 80px;
+    }
+
+    .stairs {
+      width: 40px;
+      height: 40px;
+      background-color: gray;
+      position: absolute;
+      bottom: 80px;
+    }
+
+    #coins-counter {
+      position: absolute;
+      top: 10px;
+      left: 10px;
+      font-size: 24px;
+      color: white;
+    }
+  </style>
+</head>
+<body>
+  <div id="game">
+    <div id="player"></div>
+    <div class="coin" style="left: 100px;bottom:200px"></div>
+    <div class="coin" style="left: 200px;bottom:200px"></div>
+    <div class="coin" style="left: 300px;bottom:200px"></div>
+    <div class="stairs" style="left: 300px;bottom:80px"></div>
+    <div class="stairs" style="left: 100px;bottom:40px"></div>
+    <div class="stairs" style="left: 140px;bottom:80px"></div>
+    <div class="stairs" style="left: 180px;bottom:40px"></div>
+    <div class="stairs" style="left: 220px;bottom:80px"></div>
+  </div>
+  <div id="coins-counter">Moedas: 0</div>
+
+  <script>
+    const game = document.getElementById('game');
+    const player = document.getElementById('player');
+    const coins = document.querySelectorAll('.coin');
+    const fireSBall = document.querySelectorAll('.fire-ball');
+    const stairs = document.querySelectorAll('.stairs');
+    const coinsCounter = document.getElementById('coins-counter');
+
+    let isBase = true;
+    let isJumping = false;
+    let isUpping = false;
+    let isDowning = false;
+    let isFalling = false;
+    let isMovingLeft = false;
+    let isMovingRight = false;
+    let stopMovingLeft = false;
+    let stopMovingRight = false;
+    let height = 0;
+    let jumpHeight = 120;
+    let limitJump = jumpHeight;
+    let base = 0;
+    let positionBottom = 0;
+    let positionLeft = 0;
+    let acelerate = 0;
+    let gravity = 9.8;
+    let coinsCount = 0;
+    let moveSize = 20;
+
+    function jump() {
+      if (!isJumping && !isFalling) {
+        isJumping = true;
+        height = base+Math.min(limitJump,jumpHeight);
+      }
+    }
+	
+    function applyGravity() {
+      if (positionBottom < height) {
+		isUpping = true;
+        acelerate = Math.sqrt(2 * gravity * (height - positionBottom));
+        positionBottom = Math.min(positionBottom + acelerate, height);
+		isBase = false;
+      } else if ((positionBottom > base) && (acelerate > 0)) {
+		isDowning = true;
+        if (positionBottom == height) {
+			acelerate = 0;
+        }
+        acelerate = acelerate + gravity;
+        positionBottom = positionBottom - acelerate;
+        height = base;
+		isBase = false;
+		if (positionBottom > base){
+			isJumping = false;
+			isFalling = false;
+			positionBottom = base;
+			acelerate = 0;
+			isBase = true
+		}
+      } else {
+        isJumping = false;
+        isFalling = false;
+		isUpping = false;
+		isDowning = false;
+		isBase = true
+		acelerate = 0;
+		positionBottom = base;
+      }
+      player.style.bottom = Math.max(Math.floor(positionBottom), 0) + 'px';
+    }
+	
+	function applyMove() {
+	  let left = player.style.left.replace("px", "");
+	  left=(left ? left : 0);
+	  console
+      if ((isMovingRight)&&(!stopMovingRight)) {
+		positionLeft=positionLeft*1+moveSize;
+      } 
+	  else if ((isMovingLeft)&&(!stopMovingLeft)) {
+		positionLeft=positionLeft-moveSize;
+      }
+      player.style.left = Math.max(Math.floor(positionLeft), 0) + 'px';
+	  
+    }
+
+    
+
+    function checkCollision() {
+      const playerRect = player.getBoundingClientRect();
+      coins.forEach((item) => {
+        const coinsRect = item.getBoundingClientRect();
+
+        if (
+          playerRect.bottom >= coinsRect.top &&
+          playerRect.top <= coinsRect.bottom &&
+          playerRect.right >= coinsRect.left &&
+          playerRect.left <= coinsRect.right
+        ) {
+          item.style.display = 'none';
+          coinsCount++;
+          coinsCounter.innerText = 'Moedas: ' + coinsCount;
+        }
+      });
+
+      limitJump=jumpHeight;
+	  let stairsfound = false;
+	  stopMovingRight=false;
+	  stopMovingLeft=false;
+	  
+      stairs.forEach((item) => {
+        let stairsRect = item.getBoundingClientRect();
+        const gameRect = game.getBoundingClientRect();
+		let startVelocity=Math.round(Math.sqrt(2 * gravity * (jumpHeight)));
+		if(
+			playerRect.right > item.getBoundingClientRect().left 
+			&&
+			playerRect.left < item.getBoundingClientRect().right
+		){		
+			stairsfound=true;
+			let newBase = gameRect.height-item.getBoundingClientRect().bottom+item.getBoundingClientRect().height;
+			if (
+			  playerRect.bottom <= item.getBoundingClientRect().top
+			  
+			) {
+			  base =  newBase;
+			  if(isBase){
+				height=0;
+			  }
+			}else if (
+			  playerRect.top >= item.getBoundingClientRect().bottom 
+			) {
+				limitJump=newBase-playerRect.height-item.getBoundingClientRect().height;
+				base=0;
+			}
+		}
+		else if(
+			(
+				playerRect.bottom <= item.getBoundingClientRect().bottom 
+				&&
+				playerRect.bottom > item.getBoundingClientRect().top
+			)
+			||
+			(
+				playerRect.top < item.getBoundingClientRect().bottom 
+				&&
+				playerRect.top >= item.getBoundingClientRect().top
+			)
+		){
+			if(
+				playerRect.right+moveSize > item.getBoundingClientRect().left
+				&&
+				playerRect.right+moveSize < item.getBoundingClientRect().right
+			){
+				stopMovingRight=true;
+			}
+			
+			if(
+				playerRect.left-moveSize < item.getBoundingClientRect().right
+				&&
+				playerRect.left-moveSize > item.getBoundingClientRect().left
+			){
+				stopMovingLeft=true;
+			}
+		}
+		
+		
+     });
+	  if(!stairsfound) base = 0
+	  
+    }
+
+    document.addEventListener('keydown', function(event) {
+      if ((event.code === 'Space')&&(acelerate==0)) {
+        jump();
+      } else if (event.code === 'ArrowLeft') {
+        isMovingLeft = true;
+      } else if (event.code === 'ArrowRight') {
+        isMovingRight = true;
+      }
+    });
+
+    document.addEventListener('keyup', function(event) {
+      if (event.code === 'ArrowLeft') {
+        isMovingLeft = false;
+      } else if (event.code === 'ArrowRight') {
+        isMovingRight = false;
+      }
+    });
+
+    function time() {
+      applyGravity();
+      checkCollision();
+      applyMove();
+	  checkCollision();
+      setTimeout("time()", 1000 / 10);
+    }
+
+    time();
+  </script>
+</body>
+</html>
+
+<!--
+fireball
+turt
+bugs
+flower
+cogumelo
+-->
